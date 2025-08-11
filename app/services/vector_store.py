@@ -1,5 +1,5 @@
 import logging
-import traceback,json
+import traceback
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.models import Distance, VectorParams
@@ -8,11 +8,6 @@ load_dotenv()
 import os,logging,uuid
 import faiss
 import numpy as np
-
-
-qdrant_url = os.getenv('QDRANT_URL')
-qdrant_client = QdrantClient(url=qdrant_url, timeout= 30)
-
 
 class FAISSSearchEngine:
     def __init__(self, embeddings, payloads):
@@ -76,6 +71,9 @@ class QuadrantManager:
     """Manager for Qdrant vector database operations"""
     
     def __init__(self, collection_name: str = "philippine_history"):
+
+        qdrant_url = os.getenv('QDRANT_URL')
+        self.qdrant_client = QdrantClient(url=qdrant_url, timeout= 30)
         self.collection_name = collection_name
         self.qdrant_client, self.status = self.connect_qdrant(collection_name)
 
@@ -83,12 +81,12 @@ class QuadrantManager:
         logging.info("Connecting Qdrant")
         try:
             # Check if the collection exists
-            collections = qdrant_client.get_collections()
+            collections = self.qdrant_client.get_collections()
             collection_names = [collection.name for collection in collections.collections]
             logging.info(f"Qdrant Collections fetched: {collection_names}")
 
             if collection_name not in collection_names:
-                qdrant_client.create_collection(
+                self.qdrant_client.create_collection(
                     collection_name=collection_name,
                     vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
                 )
@@ -96,7 +94,7 @@ class QuadrantManager:
             else:
                 logging.info(f"Collection '{collection_name}' already exists.")
 
-            return qdrant_client, {"status_code": 200, "message": "Connection Established!"}
+            return self.qdrant_client, {"status_code": 200, "message": "Connection Established!"}
 
         except Exception as e:
             logging.error(f"Couldn't connect to vector database. \n ERROR:: {traceback.format_exc()}")
@@ -130,7 +128,7 @@ class QuadrantManager:
     
     def fetch_all_vectors_and_payloads(self):
             """Fetch all vectors and their payloads from the Qdrant collection"""
-            scroll_result = self.qdrant_client.scroll(
+            scroll_result = self.self.qdrant_client.scroll(
                 collection_name=self.collection_name,
                 limit=10000,  # adjust limit based on expected data size
                 with_payload=True,

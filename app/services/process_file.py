@@ -12,14 +12,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-openai_api_key = os.getenv('TEAMIFIED_OPENAI_API_KEY')
-embedding_model = os.getenv('EMBEDDING_MODEL')
-client = OpenAI(api_key=openai_api_key)
 
 class FileUploadHandler:
     UPLOAD_TEMP_DIR = tempfile.mkdtemp()  # Shared temp directory for all instances
-
+    
     def __init__(self, file: Optional[UploadFile] = None):
+        openai_api_key = os.getenv('TEAMIFIED_OPENAI_API_KEY')
+        self.embedding_model = os.getenv('EMBEDDING_MODEL')
+        self.client = OpenAI(api_key=openai_api_key)
+
         self.file = file
         self.upload_dir = FileUploadHandler.UPLOAD_TEMP_DIR
         self.file_metadata = {}  # to store file_id to original filename mapping
@@ -65,9 +66,9 @@ class FileUploadHandler:
 
     def generate_embeddings(self, text):
         try:
-            query_embedding = client.embeddings.create(
+            query_embedding = self.client.embeddings.create(
                 input=text,
-                model=embedding_model
+                model=self.embedding_model
             ).data[0].embedding
 
             return query_embedding
